@@ -33,10 +33,16 @@ WORKER_LOG="$LOG_DIR/worker.log"
 FRONTEND_LOG="$LOG_DIR/frontend.log"
 SUPABASE_LOG="$LOG_DIR/supabase.log"
 
+# Configurable startup delays (can be overridden via environment variables)
+BACKEND_STARTUP_DELAY=${BACKEND_STARTUP_DELAY:-3}
+WORKER_STARTUP_DELAY=${WORKER_STARTUP_DELAY:-3}
+FRONTEND_STARTUP_DELAY=${FRONTEND_STARTUP_DELAY:-5}
+
 # Detect if local Supabase is configured
 function is_local_supabase() {
     if [ -f "$BACKEND_DIR/.env" ]; then
-        local supabase_url=$(grep "^SUPABASE_URL=" "$BACKEND_DIR/.env" | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+        local supabase_url
+        supabase_url=$(grep "^SUPABASE_URL=" "$BACKEND_DIR/.env" | cut -d'=' -f2 | tr -d '"' | tr -d "'")
         if [[ "$supabase_url" == *"127.0.0.1"* ]] || [[ "$supabase_url" == *"localhost"* ]]; then
             return 0
         fi
@@ -71,7 +77,8 @@ function setup_directories() {
 function is_running() {
     local pid_file=$1
     if [ -f "$pid_file" ]; then
-        local pid=$(cat "$pid_file")
+        local pid
+        pid=$(cat "$pid_file")
         if ps -p "$pid" > /dev/null 2>&1; then
             return 0
         else
@@ -90,17 +97,28 @@ function start_supabase() {
         # Check if Supabase is already running
         if npx supabase status > /dev/null 2>&1; then
             print_success "Local Supabase is already running"
-        else
-            nohup npx supabase start >> "$SUPABASE_LOG" 2>&1 &
-            sleep 5
-            if npx supabase status > /dev/null 2>&1; then
-                print_success "Local Supabase started"
-            else
-                print_error "Failed to start Local Supabase"
-                return 1
-            fi
+            cd "$SCRIPT_DIR"
+            return 0
         fi
-        cd "$SCRIPT_DIR"
+
+        # Verify Supabase project is initialized
+        if [ ! -f "supabase/config.toml" ]; then
+            print_error "Supabase project not initialized. Run 'npx supabase init' in backend directory first."
+            cd "$SCRIPT_DIR"
+            return 1
+        fi
+
+        # Start Supabase in foreground so user can see progress and respond to prompts
+        print_info "This may take a few minutes on first run (downloading Docker images)..."
+        if npx supabase start; then
+            print_success "Local Supabase started successfully"
+            cd "$SCRIPT_DIR"
+            return 0
+        else
+            print_error "Failed to start Local Supabase"
+            cd "$SCRIPT_DIR"
+            return 1
+        fi
     else
         print_info "Using Cloud Supabase (no local instance to start)"
     fi
@@ -152,7 +170,7 @@ function start_backend() {
     nohup uv run api.py >> "$BACKEND_LOG" 2>&1 &
     echo $! > "$BACKEND_PID"
 
-    sleep 3
+    sleep "$BACKEND_STARTUP_DELAY"
     if is_running "$BACKEND_PID"; then
         print_success "Backend API started (PID: $(cat $BACKEND_PID))"
     else
@@ -166,7 +184,8 @@ function start_backend() {
 function stop_backend() {
     if is_running "$BACKEND_PID"; then
         print_info "Stopping Backend API..."
-        local pid=$(cat "$BACKEND_PID")
+        local pid
+        pid=$(cat "$BACKEND_PID")
         kill "$pid" 2>/dev/null || true
         sleep 2
 
@@ -196,7 +215,7 @@ function start_worker() {
     nohup uv run dramatiq run_agent_background >> "$WORKER_LOG" 2>&1 &
     echo $! > "$WORKER_PID"
 
-    sleep 3
+    sleep "$WORKER_STARTUP_DELAY"
     if is_running "$WORKER_PID"; then
         print_success "Background Worker started (PID: $(cat $WORKER_PID))"
     else
@@ -210,7 +229,8 @@ function start_worker() {
 function stop_worker() {
     if is_running "$WORKER_PID"; then
         print_info "Stopping Background Worker..."
-        local pid=$(cat "$WORKER_PID")
+        local pid
+        pid=$(cat "$WORKER_PID")
         kill "$pid" 2>/dev/null || true
         sleep 2
 
@@ -240,7 +260,7 @@ function start_frontend() {
     nohup npm run dev >> "$FRONTEND_LOG" 2>&1 &
     echo $! > "$FRONTEND_PID"
 
-    sleep 5
+    sleep "$FRONTEND_STARTUP_DELAY"
     if is_running "$FRONTEND_PID"; then
         print_success "Frontend started (PID: $(cat $FRONTEND_PID))"
     else
@@ -254,7 +274,8 @@ function start_frontend() {
 function stop_frontend() {
     if is_running "$FRONTEND_PID"; then
         print_info "Stopping Frontend..."
-        local pid=$(cat "$FRONTEND_PID")
+        local pid
+        pid=$(cat "$FRONTEND_PID")
 
         # Kill the process group to stop npm and all child processes
         pkill -P "$pid" 2>/dev/null || true

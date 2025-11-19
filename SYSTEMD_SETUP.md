@@ -197,6 +197,35 @@ To modify configuration:
 1. Edit the appropriate `.env` file
 2. Restart the service: `systemctl --user restart suna.service`
 
+### Startup Delays
+
+On slower systems, you may need to increase the startup delays to ensure services have enough time to initialize. Set these environment variables before starting the service:
+
+```bash
+# Set custom startup delays (in seconds)
+export BACKEND_STARTUP_DELAY=5     # Default: 3
+export WORKER_STARTUP_DELAY=5      # Default: 3
+export FRONTEND_STARTUP_DELAY=10   # Default: 5
+
+# Then start the service
+systemctl --user start suna.service
+```
+
+Or set them in the systemd service file for persistence:
+
+```bash
+nano ~/.config/systemd/user/suna.service
+```
+
+Add under `[Service]`:
+```ini
+Environment="BACKEND_STARTUP_DELAY=5"
+Environment="WORKER_STARTUP_DELAY=5"
+Environment="FRONTEND_STARTUP_DELAY=10"
+```
+
+Then reload: `systemctl --user daemon-reload`
+
 ### Resource Limits
 
 To limit resource usage, edit `~/.config/systemd/user/suna.service`:

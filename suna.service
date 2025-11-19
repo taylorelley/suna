@@ -5,7 +5,7 @@ After=network.target docker.service
 Wants=network.target docker.service
 
 [Service]
-Type=forking
+Type=oneshot
 User=%u
 WorkingDirectory=%h/suna
 ExecStart=%h/suna/suna-manager.sh start
