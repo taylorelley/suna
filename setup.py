@@ -1836,7 +1836,7 @@ class SetupWizard:
 
         if self.env_vars["setup_method"] == "docker":
             print_info("Your Suna instance is ready to use!")
-            
+
             # Important limitation for local Supabase with Docker
             if self.env_vars.get("supabase_setup_method") == "local":
                 print(f"\n{Colors.RED}{Colors.BOLD}⚠️  IMPORTANT LIMITATION:{Colors.ENDC}")
@@ -1857,7 +1857,7 @@ class SetupWizard:
                 print(f"\n{Colors.CYAN}Future:{Colors.ENDC} We plan to integrate Supabase directly into docker-compose.yaml")
                 print("="*70 + "\n")
                 return  # Don't show Docker commands if local Supabase is configured
-            
+
             print("\nUseful Docker commands:")
             print(
                 f"  {Colors.CYAN}docker compose ps{Colors.ENDC}         - Check service status"
@@ -1871,17 +1871,39 @@ class SetupWizard:
             print(
                 f"  {Colors.CYAN}python start.py{Colors.ENDC}           - To start or stop Suna services"
             )
-            
+
             # Cloud Supabase commands
             if self.env_vars.get("supabase_setup_method") == "cloud":
                 print("\nSupabase Management:")
                 print(f"  {Colors.CYAN}Supabase Dashboard:{Colors.ENDC} https://supabase.com/dashboard")
                 print(f"  {Colors.CYAN}Project URL:{Colors.ENDC} {self.env_vars['supabase'].get('SUPABASE_URL', 'N/A')}")
         else:
+            # Show simplified systemd option
+            print("\n" + "="*70)
+            print(f"{Colors.BOLD}🚀 RECOMMENDED: Run Suna as a System Service{Colors.ENDC}")
+            print("="*70)
+            print(f"\n{Colors.GREEN}Simplify running Suna with a single command using systemd!{Colors.ENDC}")
+            print("\nInstead of managing 5 separate terminal windows, use:")
+            print(f"  {Colors.CYAN}systemctl --user start suna.service{Colors.ENDC}   - Start all services")
+            print(f"  {Colors.CYAN}systemctl --user stop suna.service{Colors.ENDC}    - Stop all services")
+            print(f"  {Colors.CYAN}systemctl --user status suna.service{Colors.ENDC}  - Check status")
+
+            print(f"\n{Colors.BOLD}Quick Setup:{Colors.ENDC}")
+            print(f"  {Colors.CYAN}mkdir -p ~/.config/systemd/user{Colors.ENDC}")
+            print(f"  {Colors.CYAN}cp suna.service ~/.config/systemd/user/{Colors.ENDC}")
+            print(f"  {Colors.CYAN}systemctl --user daemon-reload{Colors.ENDC}")
+            print(f"  {Colors.CYAN}systemctl --user start suna.service{Colors.ENDC}")
+
+            print(f"\n{Colors.BOLD}📖 For detailed instructions, see:{Colors.ENDC} {Colors.CYAN}SYSTEMD_SETUP.md{Colors.ENDC}")
+
+            # Alternative: Manual commands
+            print("\n" + "="*70)
+            print(f"{Colors.BOLD}Alternative: Manual Start (Multiple Terminals){Colors.ENDC}")
+            print("="*70)
             print_info(
-                "To start Suna, you need to run these commands in separate terminals:"
+                "If you prefer not to use systemd, run these commands in separate terminals:"
             )
-            
+
             # Show Supabase start command for local setup
             step_num = 1
             if self.env_vars.get("supabase_setup_method") == "local":
@@ -1890,7 +1912,7 @@ class SetupWizard:
                 )
                 print(f"{Colors.CYAN}   cd backend && npx supabase start{Colors.ENDC}")
                 step_num += 1
-            
+
             print(
                 f"\n{Colors.BOLD}{step_num}. Start Infrastructure (in project root):{Colors.ENDC}"
             )
@@ -1913,7 +1935,7 @@ class SetupWizard:
             print(
                 f"{Colors.CYAN}   cd backend && uv run dramatiq run_agent_background{Colors.ENDC}"
             )
-            
+
             # Show stop commands for local Supabase
             if self.env_vars.get("supabase_setup_method") == "local":
                 print(
@@ -1921,7 +1943,18 @@ class SetupWizard:
                 )
                 print(f"{Colors.CYAN}   cd backend && npx supabase stop{Colors.ENDC}")
 
-        print("\nOnce all services are running, access Suna at: http://localhost:3000")
+            # Or use the manager script
+            print("\n" + "="*70)
+            print(f"{Colors.BOLD}Or use the manager script:{Colors.ENDC}")
+            print("="*70)
+            print(f"  {Colors.CYAN}./suna-manager.sh start{Colors.ENDC}     - Start all services")
+            print(f"  {Colors.CYAN}./suna-manager.sh stop{Colors.ENDC}      - Stop all services")
+            print(f"  {Colors.CYAN}./suna-manager.sh restart{Colors.ENDC}   - Restart all services")
+            print(f"  {Colors.CYAN}./suna-manager.sh status{Colors.ENDC}    - Check status")
+
+        print(f"\n{Colors.BOLD}Access Suna:{Colors.ENDC}")
+        print(f"  Frontend: {Colors.CYAN}http://localhost:3000{Colors.ENDC}")
+        print(f"  Backend:  {Colors.CYAN}http://localhost:8000{Colors.ENDC}\n")
 
 
 if __name__ == "__main__":
