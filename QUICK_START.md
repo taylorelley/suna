@@ -21,12 +21,13 @@
 
 **One-time setup:**
 ```bash
-mkdir -p ~/.config/systemd/user
-cp suna.service ~/.config/systemd/user/
-systemctl --user daemon-reload
+# Automated installer (detects root vs non-root)
+./install-service.sh
 ```
 
 **Daily usage:**
+
+For **non-root** users:
 ```bash
 # Start all services
 systemctl --user start suna.service
@@ -41,9 +42,28 @@ systemctl --user status suna.service
 journalctl --user -u suna.service -f
 ```
 
-**Enable auto-start on boot:**
+For **root** users:
 ```bash
+# Start all services
+systemctl start suna.service
+
+# Stop all services
+systemctl stop suna.service
+
+# Check status
+systemctl status suna.service
+
+# View logs
+journalctl -u suna.service -f
+```
+
+**Enable auto-start:**
+```bash
+# Non-root (start on login)
 systemctl --user enable suna.service
+
+# Root (start on boot)
+systemctl enable suna.service
 ```
 
 📖 **Full documentation:** [SYSTEMD_SETUP.md](SYSTEMD_SETUP.md)

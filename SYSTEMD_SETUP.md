@@ -19,26 +19,58 @@ Instead of manually starting 5 separate services in different terminals, you can
 
 ### 1. Install the systemd service
 
+Use the automated installer script (recommended):
+
 ```bash
-# Copy the service file to systemd user directory
+# Run the installer - automatically detects root vs non-root
+./install-service.sh
+```
+
+The installer will:
+- Detect if you're running as root or regular user
+- Install as system service (root) or user service (non-root)
+- Set correct paths automatically
+- Provide appropriate commands for your setup
+
+**Manual Installation (Advanced Users):**
+
+<details>
+<summary>Click to expand manual installation instructions</summary>
+
+**For non-root users:**
+```bash
 mkdir -p ~/.config/systemd/user
 cp suna.service ~/.config/systemd/user/
-
-# Reload systemd to recognize the new service
 systemctl --user daemon-reload
-
-# Enable the service to start on boot (optional)
 systemctl --user enable suna.service
 ```
 
+**For root users:**
+```bash
+# Copy system service file
+cp suna-system.service /etc/systemd/system/suna.service
+
+# Update paths in the service file
+sed -i "s|/home/user/suna|$(pwd)|g" /etc/systemd/system/suna.service
+
+# Reload and enable
+systemctl daemon-reload
+systemctl enable suna.service
+```
+</details>
+
 ### 2. Start Suna
 
+**For non-root users:**
 ```bash
-# Start all Suna services
 systemctl --user start suna.service
-
-# Check status
 systemctl --user status suna.service
+```
+
+**For root users:**
+```bash
+systemctl start suna.service
+systemctl status suna.service
 ```
 
 ### 3. Access Suna
@@ -49,32 +81,53 @@ Once started, access Suna at:
 
 ## Service Management Commands
 
+> **Note:** Use `systemctl --user` for non-root users, or `systemctl` (without --user) for root users.
+
 ### Start Services
 ```bash
+# Non-root
 systemctl --user start suna.service
+
+# Root
+systemctl start suna.service
 ```
 
 ### Stop Services
 ```bash
+# Non-root
 systemctl --user stop suna.service
+
+# Root
+systemctl stop suna.service
 ```
 
 ### Restart Services
 ```bash
+# Non-root
 systemctl --user restart suna.service
+
+# Root
+systemctl restart suna.service
 ```
 
 ### Check Status
 ```bash
+# Non-root
 systemctl --user status suna.service
+
+# Root
+systemctl status suna.service
 ```
 
 ### View Logs
 ```bash
-# View systemd logs
+# View systemd logs (non-root)
 journalctl --user -u suna.service -f
 
-# View component-specific logs
+# View systemd logs (root)
+journalctl -u suna.service -f
+
+# View component-specific logs (both)
 tail -f ~/suna/logs/backend.log
 tail -f ~/suna/logs/frontend.log
 tail -f ~/suna/logs/worker.log
@@ -83,14 +136,19 @@ tail -f ~/suna/logs/supabase.log
 
 ### Enable/Disable Auto-start on Boot
 ```bash
-# Enable auto-start
+# Non-root: Enable auto-start on login
 systemctl --user enable suna.service
 
+# Root: Enable auto-start on boot
+systemctl enable suna.service
+
 # Disable auto-start
-systemctl --user disable suna.service
+systemctl --user disable suna.service  # Non-root
+systemctl disable suna.service         # Root
 
 # Check if enabled
-systemctl --user is-enabled suna.service
+systemctl --user is-enabled suna.service  # Non-root
+systemctl is-enabled suna.service         # Root
 ```
 
 ## Manual Control (Without Systemd)
@@ -125,9 +183,37 @@ Service logs are stored in the `logs/` directory:
 
 ## Troubleshooting
 
+### "Failed to connect to bus" error (when running as root)
+This happens when trying to use `systemctl --user` as root. Solutions:
+
+**Option 1 (Recommended): Use the installer script**
+```bash
+./install-service.sh
+# This will automatically install as a system service for root
+```
+
+**Option 2: Install manually as system service**
+```bash
+cp suna-system.service /etc/systemd/system/suna.service
+# Update paths in the service file
+sed -i "s|/home/user/suna|$(pwd)|g" /etc/systemd/system/suna.service
+systemctl daemon-reload
+systemctl enable suna.service
+systemctl start suna.service
+```
+
+**Option 3: Use the manager script directly**
+```bash
+./suna-manager.sh start
+```
+
 ### Service won't start
-1. Check the service status: `systemctl --user status suna.service`
-2. View detailed logs: `journalctl --user -u suna.service -n 50`
+1. Check the service status:
+   - Non-root: `systemctl --user status suna.service`
+   - Root: `systemctl status suna.service`
+2. View detailed logs:
+   - Non-root: `journalctl --user -u suna.service -n 50`
+   - Root: `journalctl -u suna.service -n 50`
 3. Check individual component logs in `~/suna/logs/`
 4. Ensure Docker is running: `docker ps`
 
