@@ -1,0 +1,25 @@
+[Unit]
+Description=Suna - Open Source AI Worker Platform
+Documentation=https://github.com/kortix-ai/suna
+After=network.target docker.service
+Wants=network.target docker.service
+
+[Service]
+Type=oneshot
+User=%u
+WorkingDirectory=%h/suna
+ExecStart=%h/suna/suna-manager.sh start
+ExecStop=%h/suna/suna-manager.sh stop
+ExecReload=%h/suna/suna-manager.sh restart
+RemainAfterExit=yes
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=300
+TimeoutStopSec=120
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
